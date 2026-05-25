@@ -11,7 +11,6 @@ from google import genai
 # ==========================================
 # 0. LOAD ENVIRONMENT VARIABLES (.env)
 # ==========================================
-# Ini akan membaca file .env di folder yang sama
 load_dotenv() 
 
 # ==========================================
@@ -33,8 +32,7 @@ gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 # ==========================================
 # 2. REGISTRASI CUSTOM LAYER TENSORFLOW
 # ==========================================
-# Wajib agar tf.keras.models.load_model bisa mengenali arsitektur buatan kita
-@tf.keras.utils.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable(name='CustomAttention') # Tambahkan parameter name agar lebih aman
 class CustomAttention(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(CustomAttention, self).__init__(**kwargs)
@@ -51,6 +49,16 @@ class CustomAttention(tf.keras.layers.Layer):
         weights = tf.nn.softmax(score, axis=1)
         context_vector = inputs * weights
         return tf.reduce_sum(context_vector, axis=1)
+
+    # ---> TAMBAHAN WAJIB: Fungsi untuk Deserialisasi <---
+    def get_config(self):
+        config = super(CustomAttention, self).get_config()
+        return config
+    
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
 
 # ==========================================
 # 3. LOADING MODEL & METADATA (Saat Server Start)
@@ -80,8 +88,12 @@ try:
     vectorizer.set_vocabulary(vocab)
     
     print("✅ Sistem siap! Model berhasil dimuat.")
+    
 except Exception as e:
+    # ---> REVISI PENTING: Matikan server jika gagal, jangan dilanjutkan <---
     print(f"❌ Error kritis saat memuat model: {e}")
+    raise RuntimeError(f"Gagal memuat model: {e}. Periksa kesesuaian versi TensorFlow atau kelas CustomAttention.")
+
 
 # ==========================================
 # 4. FUNGSI PEMBANTU (Membaca PDF & Core Logic)
