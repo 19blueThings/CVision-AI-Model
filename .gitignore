@@ -1,0 +1,10 @@
+# Mengabaikan file rahasia
+.env
+
+# Mengabaikan folder cache Python
+__pycache__/
+*.pyc
+
+# (Opsional) Mengabaikan virtual environment jika kalian pakai
+venv/
+env/
