@@ -7,6 +7,7 @@ import io
 import PyPDF2
 from dotenv import load_dotenv
 from google import genai
+from fastapi.middleware.cors import CORSMiddleware
 
 # ==========================================
 # 0. LOAD ENVIRONMENT VARIABLES (.env)
@@ -20,6 +21,14 @@ load_dotenv()
 app = FastAPI(
     title="CVision Classifier API",
     description="API untuk Klasifikasi CV (Teks & PDF) dan Ekstraksi Saran AI"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Mengizinkan akses dari semua frontend (lokal/publik)
+    allow_credentials=True,
+    allow_methods=["*"],  # Mengizinkan POST, GET, dll
+    allow_headers=["*"],
 )
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
