@@ -7,7 +7,7 @@ import io
 import PyPDF2
 from dotenv import load_dotenv
 from google import genai
-#LALA
+
 # ==========================================
 # 0. LOAD ENVIRONMENT VARIABLES (.env)
 # ==========================================
@@ -40,10 +40,12 @@ class CustomAttention(tf.keras.layers.Layer):
         super(CustomAttention, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        self.W = self.add_weight(name='attention_weight',
-                                 shape=(input_shape[-1], 1),
-                                 initializer='random_normal',
-                                 trainable=True)
+        self.W = self.add_weight(
+            name='attention_weight',
+            shape=(input_shape[-1], 1),
+            initializer='random_normal',
+            trainable=True
+        )
         super(CustomAttention, self).build(input_shape)
 
     def call(self, inputs):
@@ -52,6 +54,11 @@ class CustomAttention(tf.keras.layers.Layer):
         context_vector = inputs * weights
         return tf.reduce_sum(context_vector, axis=1)
 
+    # WAJIB UNTUK SERIALIZATION
+    def get_config(self):
+        config = super(CustomAttention, self).get_config()
+        return config
+
 # ==========================================
 # 3. LOADING MODEL & METADATA (Saat Server Start)
 # ==========================================
@@ -59,7 +66,7 @@ print("Memuat model Deep Learning dan konfigurasi...")
 try:
     # Load Model Utama
     model = tf.keras.models.load_model(
-        'CVision_Career_Classifier.keras', 
+        'saved_model', 
         custom_objects={'CustomAttention': CustomAttention}
     )
     
