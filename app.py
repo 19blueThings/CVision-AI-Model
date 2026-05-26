@@ -56,6 +56,9 @@ class CustomAttention(tf.keras.layers.Layer):
 # 3. LOADING MODEL & METADATA (Saat Server Start)
 # ==========================================
 print("Memuat model Deep Learning dan konfigurasi...")
+
+startup_error = None  # Variabel jebakan untuk menangkap error asli
+
 try:
     # Load Model Utama
     model = tf.keras.models.load_model(
@@ -64,6 +67,14 @@ try:
         compile=False 
         )
     
+    # Re-build Vectorizer (Mengubah teks -> angka untuk inference)
+    vectorizer = tf.keras.layers.TextVectorization(
+        max_tokens=10000, 
+        output_mode='int', 
+        output_sequence_length=300
+    )
+    vectorizer.set_vocabulary(vocab)
+
     # Load Vocabulary
     with open('vectorizer_vocab.pkl', 'rb') as f:
         vocab = pickle.load(f)
@@ -72,17 +83,21 @@ try:
     with open('class_names.pkl', 'rb') as f:
         class_names = pickle.load(f)
         
-    # Re-build Vectorizer (Mengubah teks -> angka untuk inference)
-    vectorizer = tf.keras.layers.TextVectorization(
-        max_tokens=10000, 
-        output_mode='int', 
-        output_sequence_length=300
-    )
-    vectorizer.set_vocabulary(vocab)
+    
     
     print("✅ Sistem siap! Model berhasil dimuat.")
 except Exception as e:
     print(f"❌ Error kritis saat memuat model: {e}")
+
+# ==========================================
+# ENDPOINT CEK STATUS (Tambahkan sementara)
+# ==========================================
+@app.get("/")
+def cek_status():
+    if startup_error:
+        # Jika gagal, tampilkan error aslinya ke layar!
+        return {"status": "GAGAL_MEMUAT_SISTEM", "pesan_error_asli": startup_error}
+    return {"status": "BERHASIL", "pesan": "Semua model dan vectorizer aman!"}
 
 # ==========================================
 # 4. FUNGSI PEMBANTU (Membaca PDF & Core Logic)
