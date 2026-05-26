@@ -67,13 +67,6 @@ try:
         compile=False 
         )
     
-    # Re-build Vectorizer (Mengubah teks -> angka untuk inference)
-    vectorizer = tf.keras.layers.TextVectorization(
-        max_tokens=10000, 
-        output_mode='int', 
-        output_sequence_length=300
-    )
-    vectorizer.set_vocabulary(vocab)
 
     # Load Vocabulary
     with open('vectorizer_vocab.pkl', 'rb') as f:
@@ -83,7 +76,13 @@ try:
     with open('class_names.pkl', 'rb') as f:
         class_names = pickle.load(f)
         
-    
+    # Re-build Vectorizer (Mengubah teks -> angka untuk inference)
+    vectorizer = tf.keras.layers.TextVectorization(
+        max_tokens=10000, 
+        output_mode='int', 
+        output_sequence_length=300
+    )
+    vectorizer.set_vocabulary(vocab)
     
     print("✅ Sistem siap! Model berhasil dimuat.")
 except Exception as e:
