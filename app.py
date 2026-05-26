@@ -69,21 +69,11 @@ class PatchedEmbedding(tf.keras.layers.Embedding):
 # 3. LOADING MODEL & METADATA (Saat Server Start)
 # ==========================================
 print("Memuat model Deep Learning dan konfigurasi...")
-
-# 1. DEKLARASIKAN VARIABEL GLOBAL DI SINI (Wajib!)
-model = None
-vectorizer = None
-class_names = None
-startup_error = None
-
 try:
-
+    # Load model dengan bersih, hanya perlu custom_objects untuk CustomAttention
     model = tf.keras.models.load_model(
         'CVision_Career_Classifier.keras', 
-        custom_objects={
-            'CustomAttention': CustomAttention,
-            'Embedding': PatchedEmbedding # <--- TAMBAHKAN BARIS INI
-        },
+        custom_objects={'CustomAttention': CustomAttention},
         compile=False
     )
     
