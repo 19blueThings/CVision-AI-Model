@@ -53,6 +53,19 @@ class CustomAttention(tf.keras.layers.Layer):
         return tf.reduce_sum(context_vector, axis=1)
 
 # ==========================================
+# 2.5 PENJINAK LAYER EMBEDDING (Bypass Error Keras)
+# ==========================================
+@tf.keras.utils.register_keras_serializable(name='PatchedEmbedding')
+class PatchedEmbedding(tf.keras.layers.Embedding):
+    @classmethod
+    def from_config(cls, config):
+        # Hapus parameter yang bikin error jika ada
+        if 'quantization_config' in config:
+            config.pop('quantization_config')
+        return super().from_config(config)
+
+
+# ==========================================
 # 3. LOADING MODEL & METADATA (Saat Server Start)
 # ==========================================
 print("Memuat model Deep Learning dan konfigurasi...")
@@ -67,7 +80,10 @@ try:
 
     model = tf.keras.models.load_model(
         'CVision_Career_Classifier.keras', 
-        custom_objects={'CustomAttention': CustomAttention},
+        custom_objects={
+            'CustomAttention': CustomAttention,
+            'Embedding': PatchedEmbedding # <--- TAMBAHKAN BARIS INI
+        },
         compile=False
     )
     
