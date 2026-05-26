@@ -66,7 +66,7 @@ print("Memuat model Deep Learning dan konfigurasi...")
 try:
     # Load Model Utama
     model = tf.keras.models.load_model(
-        'saved_model', 
+        'CVision_Career_Classifier.keras', 
         custom_objects={'CustomAttention': CustomAttention}
     )
     
