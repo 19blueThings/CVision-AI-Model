@@ -11,7 +11,6 @@ from google import genai
 # ==========================================
 # 0. LOAD ENVIRONMENT VARIABLES (.env)
 # ==========================================
-# Ini akan membaca file .env di folder yang sama
 load_dotenv() 
 
 # ==========================================
@@ -33,8 +32,7 @@ gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 # ==========================================
 # 2. REGISTRASI CUSTOM LAYER TENSORFLOW
 # ==========================================
-# Wajib agar tf.keras.models.load_model bisa mengenali arsitektur buatan kita
-@tf.keras.utils.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable(name='CustomAttention')
 class CustomAttention(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(CustomAttention, self).__init__(**kwargs)
@@ -52,58 +50,45 @@ class CustomAttention(tf.keras.layers.Layer):
         context_vector = inputs * weights
         return tf.reduce_sum(context_vector, axis=1)
 
-# ==========================================
-# 2.5 PENJINAK LAYER EMBEDDING (Bypass Error Keras)
-# ==========================================
-@tf.keras.utils.register_keras_serializable(name='PatchedEmbedding')
-class PatchedEmbedding(tf.keras.layers.Embedding):
+    def get_config(self):
+        config = super(CustomAttention, self).get_config()
+        return config
+    
     @classmethod
     def from_config(cls, config):
-        # Hapus parameter yang bikin error jika ada
-        if 'quantization_config' in config:
-            config.pop('quantization_config')
-        return super().from_config(config)
+        return cls(**config)
 
 
 # ==========================================
 # 3. LOADING MODEL & METADATA (Saat Server Start)
 # ==========================================
 print("Memuat model Deep Learning dan konfigurasi...")
-try:
-    # Load model dengan bersih, hanya perlu custom_objects untuk CustomAttention
-    model = tf.keras.models.load_model(
-        'CVision_Career_Classifier.keras', 
-        custom_objects={'CustomAttention': CustomAttention},
-        compile=False
-    )
-    
-    with open('vectorizer_vocab.pkl', 'rb') as f:
-        vocab = pickle.load(f)
-        
-    with open('class_names.pkl', 'rb') as f:
-        class_names = pickle.load(f)
-        
-    vectorizer = tf.keras.layers.TextVectorization(
-        max_tokens=10000, 
-        output_mode='int', 
-        output_sequence_length=300
-    )
-    vectorizer.set_vocabulary(vocab)
-    
-    print("✅ Sistem siap! Model berhasil dimuat.")
-except Exception as e:
-    startup_error = str(e)
-    print(f"❌ Error kritis saat memuat model: {startup_error}")
 
-# ==========================================
-# ENDPOINT CEK STATUS (Tambahkan sementara)
-# ==========================================
-@app.get("/")
-def cek_status():
-    if startup_error:
-        # Jika gagal, tampilkan error aslinya ke layar!
-        return {"status": "GAGAL_MEMUAT_SISTEM", "pesan_error_asli": startup_error}
-    return {"status": "BERHASIL", "pesan": "Semua model dan vectorizer aman!"}
+# Load Model Utama
+model = tf.keras.models.load_model(
+    'CVision_Career_Classifier.keras', 
+    custom_objects={'CustomAttention': CustomAttention},
+    compile=False
+)
+
+# Load Vocabulary
+with open('vectorizer_vocab.pkl', 'rb') as f:
+    vocab = pickle.load(f)
+    
+# Load Nama Kategori
+with open('class_names.pkl', 'rb') as f:
+    class_names = pickle.load(f)
+    
+# Re-build Vectorizer (Mengubah teks -> angka untuk inference)
+vectorizer = tf.keras.layers.TextVectorization(
+    max_tokens=10000, 
+    output_mode='int', 
+    output_sequence_length=300
+)
+vectorizer.set_vocabulary(vocab)
+
+print("✅ Sistem siap! Model berhasil dimuat.")
+
 
 # ==========================================
 # 4. FUNGSI PEMBANTU (Membaca PDF & Core Logic)
@@ -125,10 +110,6 @@ async def process_prediction(cv_text: str):
     """Fungsi inti: Melakukan prediksi dan memanggil Gemini."""
     if not cv_text:
          raise HTTPException(status_code=400, detail="Teks CV kosong.")
-    
-    # TAMBAHKAN PENGECEKAN INI
-    if vectorizer is None or model is None:
-         raise HTTPException(status_code=500, detail="Sistem AI belum siap atau gagal dimuat di background.")
 
     try:
         # A. PREDIKSI KATEGORI (TENSORFLOW)
