@@ -11,6 +11,7 @@ from google import genai
 # ==========================================
 # 0. LOAD ENVIRONMENT VARIABLES (.env)
 # ==========================================
+# Ini akan membaca file .env di folder yang sama
 load_dotenv() 
 
 # ==========================================
@@ -32,7 +33,8 @@ gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 # ==========================================
 # 2. REGISTRASI CUSTOM LAYER TENSORFLOW
 # ==========================================
-@tf.keras.utils.register_keras_serializable(name='CustomAttention')
+# Wajib agar tf.keras.models.load_model bisa mengenali arsitektur buatan kita
+@tf.keras.utils.register_keras_serializable()
 class CustomAttention(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(CustomAttention, self).__init__(**kwargs)
@@ -50,45 +52,36 @@ class CustomAttention(tf.keras.layers.Layer):
         context_vector = inputs * weights
         return tf.reduce_sum(context_vector, axis=1)
 
-    def get_config(self):
-        config = super(CustomAttention, self).get_config()
-        return config
-    
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
-
-
 # ==========================================
 # 3. LOADING MODEL & METADATA (Saat Server Start)
 # ==========================================
 print("Memuat model Deep Learning dan konfigurasi...")
-
-# Load Model Utama
-model = tf.keras.models.load_model(
-    'CVision_Career_Classifier.keras', 
-    custom_objects={'CustomAttention': CustomAttention},
-    compile=False
-)
-
-# Load Vocabulary
-with open('vectorizer_vocab.pkl', 'rb') as f:
-    vocab = pickle.load(f)
+try:
+    # Load Model Utama
+    model = tf.keras.models.load_model(
+        'CVision_Career_Classifier.keras', 
+        custom_objects={'CustomAttention': CustomAttention}
+    )
     
-# Load Nama Kategori
-with open('class_names.pkl', 'rb') as f:
-    class_names = pickle.load(f)
+    # Load Vocabulary
+    with open('vectorizer_vocab.pkl', 'rb') as f:
+        vocab = pickle.load(f)
+        
+    # Load Nama Kategori
+    with open('class_names.pkl', 'rb') as f:
+        class_names = pickle.load(f)
+        
+    # Re-build Vectorizer (Mengubah teks -> angka untuk inference)
+    vectorizer = tf.keras.layers.TextVectorization(
+        max_tokens=10000, 
+        output_mode='int', 
+        output_sequence_length=300
+    )
+    vectorizer.set_vocabulary(vocab)
     
-# Re-build Vectorizer (Mengubah teks -> angka untuk inference)
-vectorizer = tf.keras.layers.TextVectorization(
-    max_tokens=10000, 
-    output_mode='int', 
-    output_sequence_length=300
-)
-vectorizer.set_vocabulary(vocab)
-
-print("✅ Sistem siap! Model berhasil dimuat.")
-
+    print("✅ Sistem siap! Model berhasil dimuat.")
+except Exception as e:
+    print(f"❌ Error kritis saat memuat model: {e}")
 
 # ==========================================
 # 4. FUNGSI PEMBANTU (Membaca PDF & Core Logic)
