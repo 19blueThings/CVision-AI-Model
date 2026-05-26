@@ -57,26 +57,26 @@ class CustomAttention(tf.keras.layers.Layer):
 # ==========================================
 print("Memuat model Deep Learning dan konfigurasi...")
 
-startup_error = None  # Variabel jebakan untuk menangkap error asli
+# 1. DEKLARASIKAN VARIABEL GLOBAL DI SINI (Wajib!)
+model = None
+vectorizer = None
+class_names = None
+startup_error = None
 
 try:
-    # Load Model Utama
+
     model = tf.keras.models.load_model(
         'CVision_Career_Classifier.keras', 
         custom_objects={'CustomAttention': CustomAttention},
-        compile=False 
-        )
+        compile=False
+    )
     
-
-    # Load Vocabulary
     with open('vectorizer_vocab.pkl', 'rb') as f:
         vocab = pickle.load(f)
         
-    # Load Nama Kategori
     with open('class_names.pkl', 'rb') as f:
         class_names = pickle.load(f)
         
-    # Re-build Vectorizer (Mengubah teks -> angka untuk inference)
     vectorizer = tf.keras.layers.TextVectorization(
         max_tokens=10000, 
         output_mode='int', 
@@ -86,7 +86,8 @@ try:
     
     print("✅ Sistem siap! Model berhasil dimuat.")
 except Exception as e:
-    print(f"❌ Error kritis saat memuat model: {e}")
+    startup_error = str(e)
+    print(f"❌ Error kritis saat memuat model: {startup_error}")
 
 # ==========================================
 # ENDPOINT CEK STATUS (Tambahkan sementara)
@@ -118,6 +119,10 @@ async def process_prediction(cv_text: str):
     """Fungsi inti: Melakukan prediksi dan memanggil Gemini."""
     if not cv_text:
          raise HTTPException(status_code=400, detail="Teks CV kosong.")
+    
+    # TAMBAHKAN PENGECEKAN INI
+    if vectorizer is None or model is None:
+         raise HTTPException(status_code=500, detail="Sistem AI belum siap atau gagal dimuat di background.")
 
     try:
         # A. PREDIKSI KATEGORI (TENSORFLOW)
