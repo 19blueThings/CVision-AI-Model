@@ -60,9 +60,9 @@ try:
     # Load Model Utama
     model = tf.keras.models.load_model(
         'CVision_Career_Classifier.keras', 
-        custom_objects={'CustomAttention': CustomAttention}
-        compile=False #tambahan baru
-    )
+        custom_objects={'CustomAttention': CustomAttention},
+        compile=False 
+        )
     
     # Load Vocabulary
     with open('vectorizer_vocab.pkl', 'rb') as f:
