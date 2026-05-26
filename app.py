@@ -7,7 +7,7 @@ import io
 import PyPDF2
 from dotenv import load_dotenv
 from google import genai
-
+#LALA
 # ==========================================
 # 0. LOAD ENVIRONMENT VARIABLES (.env)
 # ==========================================
